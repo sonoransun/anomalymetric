@@ -1,0 +1,83 @@
+classDiagram
+  class Spectrum {
+    +log_energy_edges_eV
+    +value
+    +ValueKind value_kind
+    +SpectrumKind kind
+    +exposure_cm2_s
+    +upper_limit_mask
+    +meta
+    +as_dnde()
+    +expected_counts()
+  }
+  class SpectrumSeries {
+    +epochs_mjd
+    +spectra: list~Spectrum~
+  }
+
+  class Model {
+    <<Protocol>>
+    +name
+    +parameters: Parameters
+    +dnde(log_E)
+  }
+  class BlackBody
+  class SolarReflection
+  class PowerLaw
+  class BrokenPowerLaw
+  class GaussianLine
+  class HardCutoffPowerLaw
+  class GZKViolatingTail
+  class TripleBrokenPowerLaw
+  class Mixture {
+    +components: list~Model~
+    +dnde(log_E)
+    +component_dnde(log_E)
+  }
+
+  Model <|.. BlackBody
+  Model <|.. SolarReflection
+  Model <|.. PowerLaw
+  Model <|.. BrokenPowerLaw
+  Model <|.. GaussianLine
+  Model <|.. HardCutoffPowerLaw
+  Model <|.. GZKViolatingTail
+  Model <|.. TripleBrokenPowerLaw
+  Mixture o-- Model
+
+  class ForwardModel {
+    <<Protocol>>
+    +forward(log_edges, dnde)
+  }
+  class IdentityResponse
+  class GaussianEnergyResponse
+  class FlatExposure
+  class TabulatedExposure
+  ForwardModel <|.. IdentityResponse
+  ForwardModel <|.. GaussianEnergyResponse
+  ForwardModel <|.. FlatExposure
+  ForwardModel <|.. TabulatedExposure
+
+  class Fit {
+    +model: Model
+    +spectrum: Spectrum
+    +forward: ForwardModel
+    +run()
+    +profile_likelihood(name, scan)
+  }
+  Fit --> Model
+  Fit --> Spectrum
+  Fit --> ForwardModel
+
+  class ExoticTemplate {
+    +name
+    +factory() -> Model
+  }
+  class ScoreResult {
+    +delta_log_likelihood
+    +test_statistic
+    +anomaly_score
+    +best_template
+    +per_template
+  }
+  SpectrumSeries o-- Spectrum

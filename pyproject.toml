@@ -1,0 +1,61 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "anomalymetric"
+version = "0.1.0"
+description = "Loeb-Turner-style anomaly metric for photonic and cosmic-ray emissions."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "anomalymetric contributors" }]
+dependencies = [
+    "numpy>=1.24",
+    "scipy>=1.10",
+    "astropy>=5.3",
+    "typer>=0.9",
+    "pyarrow>=14",
+]
+
+[project.optional-dependencies]
+archives = ["astroquery>=0.4.6"]
+bayes = ["emcee>=3.1", "dynesty>=2.1"]
+cr = ["crpropa>=3.2"]
+naima = ["naima>=0.10"]
+dev = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "jupyter>=1.0",
+    "nbclient>=0.9",
+    "nbformat>=5.9",
+    "matplotlib>=3.7",
+]
+docs = [
+    "mkdocs-material>=9.5",
+    "mkdocs-mermaid2-plugin>=1.1",
+    "pymdown-extensions>=10.7",
+    "imageio>=2.34",
+    "pillow>=10.0",
+    "svgwrite>=1.4",
+    "matplotlib>=3.7",
+]
+
+[project.scripts]
+anomalymetric = "anomalymetric.cli:app"
+
+[project.entry-points."anomalymetric.loaders"]
+csv = "anomalymetric.ingest.tabular:CSVLoader"
+fits = "anomalymetric.ingest.tabular:FITSLoader"
+parquet = "anomalymetric.ingest.tabular:ParquetLoader"
+synthetic = "anomalymetric.ingest.synthetic:SyntheticLoader"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+anomalymetric = ["data/references/*.csv", "data/references/*.dat"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"

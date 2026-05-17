@@ -1,0 +1,24 @@
+sequenceDiagram
+  autonumber
+  participant User
+  participant LT as loeb_turner_score
+  participant Fit
+  participant Lib as exotic_library
+  participant Trials as gross_vitells_global_p
+  participant Res as ScoreResult
+
+  User->>LT: (spectrum, natural_components)
+  LT->>Fit: Fit(Mixture(natural), spectrum).run()
+  Fit-->>LT: log L_nat, nuisance params
+  loop for each template T in library
+    LT->>Lib: T.factory()
+    Lib-->>LT: Model
+    LT->>Fit: Fit(Mixture(natural+T), spectrum).run()
+    Fit-->>LT: log L_alt, amplitude(T)
+    LT->>LT: TS_T = max(0, 2 (L_alt − L_nat))
+  end
+  LT->>LT: best = argmax TS over library
+  LT->>Trials: gross_vitells_global_p(TS_best, n=len(library))
+  Trials-->>LT: p_global
+  LT->>Res: anomaly_score = -log10 p_global
+  Res-->>User: ScoreResult { test_statistic, anomaly_score,<br/>best_template, per_template[…] }

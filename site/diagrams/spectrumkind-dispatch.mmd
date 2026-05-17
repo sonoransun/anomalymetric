@@ -1,0 +1,23 @@
+flowchart LR
+  S[Spectrum]
+  S --> K{kind}
+  K -->|photon| P1[IdentityResponse]
+  K -->|photon w/ resolution| P2[GaussianEnergyResponse]
+  K -->|cr_proton<br/>cr_nucleus<br/>cr_allparticle| C1[FlatExposure]
+  K -->|cr_* w/ A_eff&#40;E&#41;| C2[TabulatedExposure]
+  K -->|neutrino| N1[Effective area<br/>&#40;forward stub&#41;]
+
+  P1 --> L[Poisson log L<br/>on expected counts/bin]
+  P2 --> L
+  C1 --> L
+  C2 --> L
+  N1 --> L
+
+  classDef inp fill:#e0fbfc,stroke:#1d3557;
+  classDef branch fill:#ffd166,stroke:#1d3557;
+  classDef step fill:#ffffff,stroke:#1d3557;
+  classDef result fill:#ffe066,stroke:#1d3557;
+  class S inp;
+  class K branch;
+  class P1,P2,C1,C2,N1 step;
+  class L result;

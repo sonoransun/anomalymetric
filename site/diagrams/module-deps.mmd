@@ -1,0 +1,43 @@
+graph LR
+  subgraph foundation
+    spectrum[spectrum]
+    units[units]
+  end
+  subgraph subsystems
+    ingest[ingest]
+    forward[forward]
+    models[models]
+    score[score]
+    cosmicray[cosmicray]
+  end
+  subgraph entrypoints
+    pipeline[pipeline]
+    cli[cli]
+  end
+
+  units --> spectrum
+  spectrum --> ingest
+  spectrum --> forward
+  spectrum --> models
+  spectrum --> score
+  spectrum --> cosmicray
+  units --> ingest
+  units --> models
+  units --> forward
+  forward --> models
+  models --> score
+  models --> cosmicray
+  score --> cosmicray
+  forward --> cosmicray
+  ingest --> pipeline
+  forward --> pipeline
+  score --> pipeline
+  models --> pipeline
+  pipeline --> cli
+
+  classDef foundation fill:#e0fbfc,stroke:#1d3557,color:#1d3557;
+  classDef subsystems fill:#ffffff,stroke:#1d3557,color:#1d3557;
+  classDef entrypoints fill:#ffe066,stroke:#1d3557,color:#1d3557;
+  class spectrum,units foundation;
+  class ingest,forward,models,score,cosmicray subsystems;
+  class pipeline,cli entrypoints;

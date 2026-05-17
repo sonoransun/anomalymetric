@@ -1,0 +1,23 @@
+flowchart TD
+  A[Spectrum file<br/>CSV / FITS / Parquet] -->|SpectrumLoader| B[Spectrum<br/>ValueKind + SpectrumKind]
+  B --> C{kind?}
+  C -->|photon| D1[IdentityResponse /<br/>GaussianEnergyResponse]
+  C -->|cr_*| D2[FlatExposure /<br/>TabulatedExposure]
+  C -->|neutrino| D3[Effective area]
+  D1 --> E[Fit&#40;natural&#41;<br/>log L_nat]
+  D2 --> E
+  D3 --> E
+  E --> F[Loop over exotic library<br/>Fit&#40;natural + template&#41;]
+  F --> G[max TS = -2 ln L_nat/L_alt]
+  G --> H[Gross&#8211;Vitells trials correction]
+  H --> I[ScoreResult<br/>anomaly_score,<br/>per-template TS]
+  I --> J[Ranking CSV / Parquet]
+
+  classDef inp fill:#e0fbfc,stroke:#1d3557,color:#1d3557;
+  classDef step fill:#ffffff,stroke:#1d3557,color:#1d3557;
+  classDef branch fill:#ffd166,stroke:#1d3557,color:#1d3557;
+  classDef result fill:#ffe066,stroke:#1d3557,color:#1d3557;
+  class A,B inp;
+  class C branch;
+  class D1,D2,D3,E,F,G,H step;
+  class I,J result;

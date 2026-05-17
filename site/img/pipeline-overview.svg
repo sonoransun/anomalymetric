@@ -1,0 +1,77 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 960 220' role='img' aria-label='anomalymetric pipeline overview'>
+  <style>
+    .box { fill:#ffffff; stroke:#1d3557; stroke-width:1.8; rx:8; ry:8; }
+    .lbl { font: 600 14px Inter, system-ui, sans-serif; fill:#1d3557; text-anchor:middle; }
+    .sub { font: 11px Inter, system-ui, sans-serif; fill:#457b9d; text-anchor:middle; }
+    .arrow { stroke:#1d3557; stroke-width:2; fill:none; marker-end:url(#head); }
+    .pulse { stroke:#e63946; stroke-width:3; fill:none; marker-end:url(#headRed); }
+    .pulse1 { animation: dash 4s linear infinite; stroke-dasharray:14 240; }
+    .pulse2 { animation: dash 4s linear infinite 0.8s; stroke-dasharray:14 240; }
+    .pulse3 { animation: dash 4s linear infinite 1.6s; stroke-dasharray:14 240; }
+    .pulse4 { animation: dash 4s linear infinite 2.4s; stroke-dasharray:14 240; }
+    .pulse5 { animation: dash 4s linear infinite 3.2s; stroke-dasharray:14 240; }
+    @keyframes dash { to { stroke-dashoffset: -254; } }
+    .title { font: 700 16px Inter, system-ui, sans-serif; fill:#1d3557; }
+  </style>
+  <defs>
+    <marker id='head' viewBox='0 0 10 10' refX='9' refY='5' markerWidth='6' markerHeight='6' orient='auto'>
+      <path d='M 0 0 L 10 5 L 0 10 z' fill='#1d3557'/>
+    </marker>
+    <marker id='headRed' viewBox='0 0 10 10' refX='9' refY='5' markerWidth='6' markerHeight='6' orient='auto'>
+      <path d='M 0 0 L 10 5 L 0 10 z' fill='#e63946'/>
+    </marker>
+  </defs>
+
+  <text class='title' x='14' y='22'>anomalymetric pipeline</text>
+
+  <!-- Boxes -->
+  <g>
+    <rect class='box' x='14'  y='80' width='130' height='70'/>
+    <text class='lbl' x='79'  y='110'>Spectrum file</text>
+    <text class='sub' x='79'  y='128'>CSV / FITS / Parquet</text>
+
+    <rect class='box' x='178' y='80' width='130' height='70'/>
+    <text class='lbl' x='243' y='110'>SpectrumLoader</text>
+    <text class='sub' x='243' y='128'>ingest plugin</text>
+
+    <rect class='box' x='342' y='80' width='130' height='70'/>
+    <text class='lbl' x='407' y='106'>Spectrum</text>
+    <text class='sub' x='407' y='124'>ValueKind +</text>
+    <text class='sub' x='407' y='138'>SpectrumKind</text>
+
+    <rect class='box' x='506' y='30' width='130' height='70'/>
+    <text class='lbl' x='571' y='60'>Fit(natural)</text>
+    <text class='sub' x='571' y='78'>log L_nat</text>
+
+    <rect class='box' x='506' y='130' width='130' height='70'/>
+    <text class='lbl' x='571' y='160'>Fit(natural + T)</text>
+    <text class='sub' x='571' y='178'>for T in library</text>
+
+    <rect class='box' x='670' y='80' width='130' height='70'/>
+    <text class='lbl' x='735' y='108'>max TS</text>
+    <text class='sub' x='735' y='126'>Gross–Vitells</text>
+    <text class='sub' x='735' y='140'>trials correction</text>
+
+    <rect class='box' x='828' y='80' width='118' height='70'/>
+    <text class='lbl' x='887' y='106'>ScoreResult</text>
+    <text class='sub' x='887' y='124'>anomaly_score,</text>
+    <text class='sub' x='887' y='138'>per-template TS</text>
+  </g>
+
+  <!-- Arrows -->
+  <path class='arrow' d='M144 115 L178 115'/>
+  <path class='arrow' d='M308 115 L342 115'/>
+  <path class='arrow' d='M472 100 L506 65'/>
+  <path class='arrow' d='M472 130 L506 165'/>
+  <path class='arrow' d='M636 65  L670 100'/>
+  <path class='arrow' d='M636 165 L670 130'/>
+  <path class='arrow' d='M800 115 L828 115'/>
+
+  <!-- Pulse overlay (same path, animated red dashes) -->
+  <path class='pulse pulse1' d='M144 115 L178 115'/>
+  <path class='pulse pulse2' d='M308 115 L342 115'/>
+  <path class='pulse pulse3' d='M472 100 L506 65 M472 130 L506 165'/>
+  <path class='pulse pulse4' d='M636 65 L670 100 M636 165 L670 130'/>
+  <path class='pulse pulse5' d='M800 115 L828 115'/>
+</svg>

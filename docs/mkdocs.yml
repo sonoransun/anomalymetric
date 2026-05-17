@@ -1,0 +1,80 @@
+site_name: anomalymetric
+site_description: Loeb–Turner-style emission anomaly metric for photons and cosmic rays.
+site_url: https://your-org.github.io/anomalymetric/
+repo_url: https://github.com/your-org/anomalymetric
+repo_name: your-org/anomalymetric
+edit_uri: edit/main/docs/
+docs_dir: .
+site_dir: ../site
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - content.code.copy
+    - content.action.edit
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: red
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: red
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search
+  - mermaid2
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:mermaid2.fence_mermaid_custom
+
+extra:
+  generator: false
+
+not_in_nav: |
+  diagrams/README.md
+  img/README.md
+
+nav:
+  - Home: index.md
+  - For users:
+      - Installation: for-users/installation.md
+      - Quickstart: for-users/quickstart.md
+      - Concepts: for-users/concepts.md
+      - Physics: for-users/physics.md
+      - Scoring: for-users/scoring.md
+      - Cosmic rays: for-users/cosmic-rays.md
+      - CLI reference: for-users/cli.md
+  - For contributors:
+      - Architecture: for-contributors/architecture.md
+      - Design decisions: for-contributors/design-decisions.md
+      - Extending models: for-contributors/extending-models.md
+      - Extending loaders: for-contributors/extending-loaders.md
+      - Testing: for-contributors/testing.md
