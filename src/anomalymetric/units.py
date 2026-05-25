@@ -58,3 +58,38 @@ def bin_centers_eV(log_edges: ArrayLike) -> NDArray[np.float64]:
     """Geometric centers in eV from log10(E/eV) edges."""
     edges_log = np.asarray(log_edges, dtype=float)
     return 10.0 ** (0.5 * (edges_log[:-1] + edges_log[1:]))
+
+
+def log_frequency_grid(
+    log_f_min: float, log_f_max: float, bins_per_decade: int = 20
+) -> NDArray[np.float64]:
+    """Bin edges uniform in log10(nu/Hz), returned as canonical log10(E/eV) edges.
+
+    Sensor channels (magnetometer/SQUID, gravimeter) are naturally binned in
+    frequency; this maps them onto the package's shared log-energy axis via
+    E = h*nu. `hz_to_ev` is monotonic, so the returned edges stay sorted
+    ascending and behave identically to `log_energy_grid` downstream.
+    """
+    n_bins = int(np.ceil((log_f_max - log_f_min) * bins_per_decade))
+    log_nu_edges = np.linspace(log_f_min, log_f_max, n_bins + 1)
+    return np.log10(hz_to_ev(10.0**log_nu_edges))
+
+
+def bin_bandwidth_hz(log_edges: ArrayLike) -> NDArray[np.float64]:
+    """Per-bin resolution bandwidth in Hz from log10(E/eV) edges.
+
+    Used to turn a white-noise amplitude spectral density into a per-bin sigma
+    (sigma ~ ASD * sqrt(bandwidth)).
+    """
+    e_edges = 10.0 ** np.asarray(log_edges, dtype=float)
+    return np.abs(np.diff(ev_to_hz(e_edges)))
+
+
+def asd_to_psd(asd: ArrayLike) -> NDArray[np.float64]:
+    """Amplitude spectral density -> power spectral density (square)."""
+    return np.asarray(asd, dtype=float) ** 2
+
+
+def frequencies_hz(log_energy_centers_eV: ArrayLike) -> NDArray[np.float64]:
+    """Frequencies (Hz) for log10(E/eV) centers on a sensor channel (nu = E / h)."""
+    return ev_to_hz(10.0 ** np.asarray(log_energy_centers_eV, dtype=float))

@@ -141,6 +141,63 @@ def gzk_violating_template(label: str = "default") -> ExoticTemplate:
     return ExoticTemplate(name=f"gzk.{label}", factory=make)
 
 
+class BroadbandBump:
+    """A log-normal bump on the analysis axis — the PSD analog of a hard cutoff.
+
+    Used by the continuous sensor channels for *unmodeled* broadband excess
+    (a smooth power bump rather than a narrow line). Returns the value directly
+    (interpreted as a PSD for sensor channels), without the 1/E density factor a
+    photon line carries. Center and width are locked; only amplitude is free.
+    """
+
+    def __init__(
+        self,
+        amplitude: float = 1.0,
+        E_center_eV: float = 1.0,
+        width_dex: float = 0.3,
+    ):
+        self.name = "broadband_bump"
+        self.parameters = Parameters(
+            [
+                Parameter("amplitude", amplitude, min=0.0, max=np.inf),
+                Parameter("E_center_eV", E_center_eV, min=1e-30, max=1e22, frozen=True),
+                Parameter("width_dex", width_dex, min=1e-3, max=3.0, frozen=True),
+            ]
+        )
+
+    def dnde(self, log_energy_centers_eV: NDArray[np.float64]) -> NDArray[np.float64]:
+        log_E = np.asarray(log_energy_centers_eV, dtype=float)
+        A = self.parameters["amplitude"].value
+        log_Ec = np.log10(self.parameters["E_center_eV"].value)
+        w = self.parameters["width_dex"].value
+        return A * np.exp(-0.5 * ((log_E - log_Ec) / w) ** 2)
+
+
+def broadband_bump_template(label: str, E_center_eV: float, width_dex: float = 0.3) -> ExoticTemplate:
+    def make() -> object:
+        m = BroadbandBump(amplitude=1.0, E_center_eV=E_center_eV, width_dex=width_dex)
+        m.name = f"bump.{label}"
+        return m
+
+    return ExoticTemplate(name=f"bump.{label}", factory=make)
+
+
+def psd_line_template(name: str, E_center_eV: float, width_dex: float = 0.02) -> ExoticTemplate:
+    """A narrow PSD line (peak-height-parameterized bump) with a free amplitude.
+
+    Shared by the magnetometric and gravitational channels for their axion /
+    fifth-force / EP / oscillating-DM lines; center and width are locked, so the
+    optimizer only fits the line height.
+    """
+
+    def make() -> object:
+        line = BroadbandBump(amplitude=1.0, E_center_eV=E_center_eV, width_dex=width_dex)
+        line.name = name
+        return line
+
+    return ExoticTemplate(name=name, factory=make)
+
+
 def default_library() -> list[ExoticTemplate]:
     """Curated v1 library covering photon and CR exotic signatures."""
     templates: list[ExoticTemplate] = []

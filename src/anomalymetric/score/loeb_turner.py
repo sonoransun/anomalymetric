@@ -57,7 +57,7 @@ def loeb_turner_score(
     *,
     forward: Optional[ForwardModel] = None,
     exotic_library: Optional[list[ExoticTemplate]] = None,
-    n_trials: int = 1,
+    n_trials: Optional[int] = None,
 ) -> ScoreResult:
     """Compute the Loeb–Turner-style score for `spectrum`.
 
@@ -73,10 +73,11 @@ def loeb_turner_score(
         for cosmic rays/neutrinos.
     exotic_library : list of ExoticTemplate, optional
         Defaults to `models.exotic.default_library()`.
-    n_trials : int
+    n_trials : int, optional
         Effective number of independent trials for the look-elsewhere correction.
-        For a discrete template library this defaults to `len(library)`; for
-        line-energy scans pass a larger value (~ scan_range / line_width).
+        Defaults to `len(exotic_library)` (the discrete-template case). Pass an
+        explicit value for a continuous line-energy scan (~ scan_range / line_width);
+        the explicit value is honored even if it is smaller than the library size.
     """
     if exotic_library is None:
         exotic_library = default_library()
@@ -85,6 +86,7 @@ def loeb_turner_score(
     natural = Mixture([_clone(m) for m in natural_components], name="natural")
     nat_fit = Fit(natural, spectrum, forward=forward)
     nat_result = nat_fit.run()
+    nat_pred = nat_fit.predicted_value()
 
     per_template: list[TemplateScore] = []
     for template in exotic_library:
@@ -95,14 +97,19 @@ def loeb_turner_score(
             if name in [p.name for p in alt.parameters.params]:
                 alt.parameters[name].value = value
         alt_fit = Fit(alt, spectrum, forward=forward)
+        # Seed the template amplitude with its closed-form matched-filter estimate
+        # so the optimizer starts at the right order of magnitude. Without this,
+        # channels whose amplitudes span many decades (e.g. PSD lines far below
+        # the noise floor) cannot be reached from a fixed default start.
+        _warm_start_template_amplitude(alt, alt_fit, nat_pred, template.name)
         alt_result = alt_fit.run()
         d_ll = alt_result.log_likelihood - nat_result.log_likelihood
         ts = max(0.0, 2.0 * d_ll)
-        amp_key = next(
-            (k for k in alt_result.parameter_values if k.endswith(".amplitude") and template.name in k),
-            None,
-        )
-        amp = float(alt_result.parameter_values.get(amp_key, np.nan)) if amp_key else float("nan")
+        # Exact key: the template is the last component, so its amplitude parameter
+        # is `"{template.name}.amplitude"`. A substring match would alias templates
+        # whose names are prefixes of one another.
+        amp_key = f"{template.name}.amplitude"
+        amp = float(alt_result.parameter_values.get(amp_key, np.nan))
         per_template.append(
             TemplateScore(
                 template_name=template.name,
@@ -115,7 +122,7 @@ def loeb_turner_score(
         )
 
     best = max(per_template, key=lambda t: t.ts)
-    trials = max(n_trials, len(exotic_library))
+    trials = n_trials if n_trials is not None else len(exotic_library)
     p_global = gross_vitells_global_p(best.ts, n_trials=trials)
     anomaly_score = -np.log10(max(p_global, 1e-300))
     return ScoreResult(
@@ -132,3 +139,35 @@ def loeb_turner_score(
 def _clone(model):
     """Deep-copy a Model so multiple fits don't share Parameter state."""
     return copy.deepcopy(model)
+
+
+def _warm_start_template_amplitude(alt, alt_fit, nat_pred, template_name) -> None:
+    """Set the template's amplitude to its weighted-least-squares matched-filter estimate.
+
+    For a fixed template shape `t` (unit amplitude) added on top of the natural
+    prediction, the amplitude that best explains the residual `r = data - nat`
+    under inverse-variance weights `w` is `sum(w r t) / sum(w t^2)`. This is the
+    exact MLE for the linear amplitude and gives the optimizer a starting point
+    of the correct magnitude regardless of the channel's absolute scale.
+    """
+    amp_key = f"{template_name}.amplitude"
+    try:
+        amp_param = alt.parameters[amp_key]
+    except KeyError:
+        return
+    if amp_param.frozen:
+        return
+    amp_param.value = 1.0  # evaluate the unit-amplitude template contribution
+    unit_dnde = alt.component_dnde(alt_fit._log_centers)[template_name]
+    t_pred = alt_fit.forward.forward(alt_fit._edges, unit_dnde)
+    if alt_fit._is_gaussian:
+        var = np.clip(alt_fit._sigma, 1e-300, np.inf) ** 2
+    else:
+        var = np.clip(nat_pred, 1.0, np.inf)  # Poisson variance ~ mean
+    resid = alt_fit._observed - nat_pred
+    denom = float(np.sum(t_pred * t_pred / var))
+    if denom <= 0 or not np.isfinite(denom):
+        amp_param.value = 0.0
+        return
+    amp0 = float(np.sum(resid * t_pred / var) / denom)
+    amp_param.value = amp_param.clamp(max(amp0, 0.0))

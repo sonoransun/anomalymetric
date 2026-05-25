@@ -9,9 +9,12 @@ laser lines, axion lines, hard-cutoff power-laws, and GZK-violating tails
 forms the "exotic" alternative. The score is a **profile-likelihood ratio**
 with a Gross–Vitells / Bonferroni look-elsewhere correction.
 
-Photons (radio → gamma) and cosmic rays (eV → ZeV) live on a unified
-`log10(E/eV)` axis but use channel-specific Poisson likelihoods under the
-hood.
+Photons (radio → gamma) and cosmic rays (eV → ZeV) use **Poisson** likelihoods;
+**magnetometric** (SQUID) and **gravitational-differential** sensing add
+continuous **Gaussian** power-spectral-density channels. All of them live on one
+`log10(E/eV)` axis — a frequency maps in via `E = hν`, so a SQUID haloscope and a
+photon detector hunt the *same* axion line at `f = mc²/h`. The likelihood
+dispatches on the channel; the scoring, ranking, and trials machinery are shared.
 
 <p align="center">
   <img src="docs/img/pipeline-overview.svg" alt="anomalymetric pipeline overview" width="100%"/>
@@ -89,6 +92,8 @@ print(loeb_turner_score(anom, natural).anomaly_score)
 | [Physics](docs/for-users/physics.md) | [Extending loaders](docs/for-contributors/extending-loaders.md) |
 | [Scoring](docs/for-users/scoring.md) | [Testing](docs/for-contributors/testing.md) |
 | [Cosmic rays](docs/for-users/cosmic-rays.md) | |
+| [Magnetometric (SQUID)](docs/for-users/magnetometric.md) | |
+| [Gravitational differential](docs/for-users/gravitational.md) | |
 | [CLI reference](docs/for-users/cli.md) | |
 
 Walk-throughs as Jupyter notebooks: [`notebooks/`](notebooks/).
@@ -99,9 +104,9 @@ Walk-throughs as Jupyter notebooks: [`notebooks/`](notebooks/).
 .venv/bin/pytest
 ```
 
-31 tests; runs in about a minute. See
-[`docs/for-contributors/testing.md`](docs/for-contributors/testing.md) for
-the layout.
+Runs in ~30 s in parallel (`pytest -n auto`); `pytest -m "not slow"` is a ~2 s
+fast subset. See [`docs/for-contributors/testing.md`](docs/for-contributors/testing.md)
+for the layout.
 
 ## Documentation site
 
@@ -124,11 +129,13 @@ push to `main`; enable GitHub Pages on the `gh-pages` branch to publish.
 | `spectrum`    | `Spectrum` dataclass with explicit `ValueKind` / `SpectrumKind` |
 | `units`       | log10(E/eV) axis helpers; Hz, nm, eV conversions |
 | `forward`     | Identity / Gaussian-resolution response, exposure, K-correction |
-| `models`      | Blackbody, solar reflection, power-laws, lines, mixtures, MLE `Fit` |
-| `models.exotic` | Matched-filter library: laser, axion, hard-cutoff, GZK-violating |
-| `score`       | Profile-likelihood ratio + Gross–Vitells trials + ranking |
+| `models`      | Blackbody, solar reflection, power-laws, lines, bumps, mixtures, MLE `Fit` (Poisson + Gaussian) |
+| `models.exotic` | Matched-filter library: laser, axion, hard-cutoff, GZK-violating, broadband bump |
+| `score`       | Profile-likelihood ratio, BIC/Laplace/dynesty Bayes factors, multi-epoch variability, Gross–Vitells trials + ranking |
 | `cosmicray`   | CR factories, PDG all-particle reference, triple-broken-PL fit, CR PLR |
-| `ingest`      | Synthetic generator, tabular loaders, archive stubs, plugin registry |
+| `magnetometric` | SQUID flux-noise floor + axion/dark-photon line library (Gaussian PSD) |
+| `gravitational` | Differential-acceleration noise floor + fifth-force / EP / oscillating-DM lines |
+| `ingest`      | Poisson + PSD synthetic generators, tabular loaders, archive loaders, plugin registry |
 | `pipeline` / `cli` | Orchestration + Typer-based command line |
 
 The load-bearing decisions are recorded in

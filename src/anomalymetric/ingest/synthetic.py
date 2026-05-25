@@ -26,8 +26,14 @@ def synthetic_natural(
     exposure_cm2_s: float = 1.0,
     seed: Optional[int] = None,
     poisson: bool = True,
+    ul_fraction: float = 0.0,
 ) -> Spectrum:
-    """Blackbody + power-law background sampled with Poisson noise."""
+    """Blackbody + power-law background sampled with Poisson noise.
+
+    If `ul_fraction` > 0, that fraction of the lowest-expected bins are flagged as
+    upper limits (`upper_limit_mask`), emulating a survey with non-detections in
+    its faintest channels.
+    """
     edges = log_energy_grid(log_e_min, log_e_max, bins_per_decade)
     centers = 0.5 * (edges[:-1] + edges[1:])
     bb = BlackBody(T_K=T_K, amplitude=bb_amplitude)
@@ -40,12 +46,14 @@ def synthetic_natural(
         observed = rng.poisson(np.clip(expected, 0, None)).astype(float)
     else:
         observed = expected.copy()
+    ul_mask = _upper_limit_mask(expected, ul_fraction)
     return Spectrum(
         log_energy_edges_eV=edges,
         value=observed,
         value_kind=ValueKind.COUNTS_PER_BIN,
         kind=SpectrumKind.PHOTON,
         exposure_cm2_s=np.full_like(observed, exposure_cm2_s),
+        upper_limit_mask=ul_mask,
         meta={
             "synthetic": True,
             "T_K": T_K,
@@ -55,6 +63,18 @@ def synthetic_natural(
             "seed": seed,
         },
     )
+
+
+def _upper_limit_mask(strength: NDArray[np.float64], ul_fraction: float):
+    """Flag the weakest `ul_fraction` of bins (by `strength`) as upper limits."""
+    if ul_fraction <= 0.0:
+        return None
+    n = strength.shape[0]
+    n_ul = int(np.floor(ul_fraction * n))
+    mask = np.zeros(n, dtype=bool)
+    if n_ul > 0:
+        mask[np.argsort(strength)[:n_ul]] = True
+    return mask
 
 
 def synthetic_with_exotic(
@@ -82,6 +102,7 @@ def synthetic_with_exotic(
         value_kind=ValueKind.COUNTS_PER_BIN,
         kind=base.kind,
         exposure_cm2_s=exposure.copy(),
+        upper_limit_mask=base.upper_limit_mask,
         meta=meta,
     )
 
@@ -99,6 +120,7 @@ class SyntheticLoader:
             base = synthetic_natural(**{k: v for k, v in kwargs.items() if k in {
                 "log_e_min", "log_e_max", "bins_per_decade", "T_K", "bb_amplitude",
                 "pl_amplitude", "pl_index", "exposure_cm2_s", "seed", "poisson",
+                "ul_fraction",
             }})
             return synthetic_with_exotic(
                 base,

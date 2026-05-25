@@ -12,6 +12,8 @@ from typing import Iterable, Optional, Protocol
 import numpy as np
 from numpy.typing import NDArray
 
+__all__ = ["Parameter", "Parameters", "Model"]
+
 
 @dataclass
 class Parameter:

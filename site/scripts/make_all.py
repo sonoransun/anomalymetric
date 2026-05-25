@@ -16,6 +16,7 @@ HERE = Path(__file__).resolve().parent
 
 JOB_NAMES = [
     "make_energy_coverage",
+    "make_sensor_coverage",
     "make_pipeline_svg",
     "make_planck_sweep",
     "make_ts_scan",

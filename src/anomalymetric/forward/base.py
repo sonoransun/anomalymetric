@@ -1,9 +1,12 @@
 """Forward-model protocol.
 
-A `ForwardModel` maps a *source* differential flux dN/dE on the analysis grid
-to expected counts per bin on the *detector* grid. For an ideal detector that
-is just multiplication by bin width * exposure; real detectors fold in energy
-dispersion (RMF), effective area (ARF), and PSF leakage.
+A `ForwardModel` maps a *source* quantity on the analysis grid to the predicted
+*detector* observable per bin. The source quantity is dN/dE for Poisson channels
+(photons, cosmic rays) — folded to expected counts via bin width * exposure,
+energy dispersion (RMF), effective area (ARF), PSF leakage — and a predicted
+power spectral density S(f) for continuous Gaussian field-sensor channels
+(magnetometer/SQUID, gravimeter), where the forward is an identity pass-through
+or a sensor transfer (see `forward.sensor`).
 """
 
 from __future__ import annotations

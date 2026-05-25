@@ -71,10 +71,10 @@ The built-in CSV/FITS/Parquet loaders use this schema:
 | `log_energy_edge_hi_eV` | yes\* | Together they define bin edges |
 | `log_energy_eV` | yes\* | Legacy alternative — single column of centers; edges reconstructed at midpoints |
 | `value` | yes | Per-bin value |
-| `value_kind` | yes | One of `dNdE`, `EdNdE`, `E2dNdE`, `nuFnu`, `photon_rate_per_bin`, `counts_per_bin` |
-| `kind` | no | Defaults to `photon` if absent |
-| `uncertainty` | no | Same shape as `value` |
-| `upper_limit_mask` | no | Boolean column |
+| `value_kind` | yes | One of `dNdE`, `EdNdE`, `E2dNdE`, `nuFnu`, `photon_rate_per_bin`, `counts_per_bin`, `psd_per_bin`, `asd_per_bin` |
+| `kind` | no | Defaults to `photon`; sensor channels use `magnetometric` / `gravitational` |
+| `uncertainty` | no | Same shape as `value`. **Required** for the Gaussian (PSD/ASD) channels — it is the per-bin σ of the PSD estimate |
+| `upper_limit_mask` | no | Boolean column; flagged bins use the one-sided (Poisson tail / half-normal) penalty |
 | `exposure_cm2_s` | depends | Required iff `value_kind == counts_per_bin` |
 
 \* Pass either the explicit `_lo`/`_hi` pair **or** a single `log_energy_eV`

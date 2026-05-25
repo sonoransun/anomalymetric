@@ -78,3 +78,22 @@ masses gives the test physical meaning and a well-defined trials factor (the
 size of the library, plus an explicit penalty for any continuous scan).
 
 For more on the statistics see [Scoring](scoring.md).
+
+## Field-sensor channels (PSD, Gaussian)
+
+Photons and cosmic rays are *counts* and use a Poisson likelihood. The
+[magnetometric](magnetometric.md) (SQUID) and
+[gravitational](gravitational.md) channels are different: the observable is a
+continuous **power spectral density** S(f) with **Gaussian** noise. The
+likelihood dispatches on `SpectrumKind` — `MAGNETOMETRIC` and `GRAVITATIONAL`
+use `gaussian_log_likelihood` (a chi-square against the per-bin σ carried in
+`Spectrum.uncertainty`), everything else stays Poisson.
+
+These channels still live on the one shared axis: a frequency maps to an energy
+via `E = hν`, so the bin energy literally *is* the photon-equivalent energy of
+that frequency. The same `log10(E/eV)` coordinate therefore unifies a SQUID
+haloscope, a gravimeter, and a photon detector — and an axion of mass `m_a`
+appears at `E = m_a` on all of them. For these channels a `Model.dnde` returns a
+predicted PSD (PSDs of independent processes add, so the additive `Mixture` is
+still correct), the natural mixture is the instrument noise floor, and an exotic
+template is a narrow line or broadband bump above it.

@@ -25,6 +25,18 @@ def local_p(ts: float) -> float:
     return 0.5 * float(chi2.sf(ts, df=1))
 
 
+def local_p_chi2(ts: float, dof: int) -> float:
+    """One-sided local p-value for a TS that is chi^2_dof under the null.
+
+    Used for the multi-epoch case where `dof` independent per-epoch test statistics
+    (each ~chi^2_1) are summed into a chi^2_dof statistic. The boundary half-factor
+    is kept for parity with `local_p` (amplitudes are bounded at zero).
+    """
+    if ts <= 0:
+        return 1.0
+    return 0.5 * float(chi2.sf(ts, df=max(int(dof), 1)))
+
+
 def gross_vitells_global_p(ts: float, n_trials: int = 1) -> float:
     """Bonferroni-style global p for a finite trials factor.
 

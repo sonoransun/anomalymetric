@@ -14,6 +14,13 @@ class Mixture:
     def __init__(self, components: list, name: str = "mixture"):
         if not components:
             raise ValueError("Mixture requires at least one component")
+        names = [c.name for c in components]
+        if len(set(names)) != len(names):
+            dupes = sorted({n for n in names if names.count(n) > 1})
+            raise ValueError(
+                f"Mixture component names must be unique; duplicates would alias "
+                f"their prefixed parameters. Duplicated: {dupes}"
+            )
         self.name = name
         self.components = list(components)
         params: list = []

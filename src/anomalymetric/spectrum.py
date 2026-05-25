@@ -18,6 +18,14 @@ from numpy.typing import NDArray
 
 from anomalymetric.units import bin_centers_eV, bin_widths_eV
 
+__all__ = [
+    "ValueKind",
+    "SpectrumKind",
+    "GAUSSIAN_KINDS",
+    "Spectrum",
+    "SpectrumSeries",
+]
+
 
 class ValueKind(str, Enum):
     DNDE = "dNdE"
@@ -26,6 +34,12 @@ class ValueKind(str, Enum):
     NUFNU = "nuFnu"
     PHOTON_RATE_PER_BIN = "photon_rate_per_bin"
     COUNTS_PER_BIN = "counts_per_bin"
+    # Continuous field-sensor channels (magnetometer/SQUID, gravimeter): the
+    # observable is a power spectral density on a frequency axis (mapped onto the
+    # shared log10(E/eV) axis via E = h*nu). Instruments report either the PSD or
+    # its square root (amplitude spectral density); we refuse to guess which.
+    PSD_PER_BIN = "psd_per_bin"
+    ASD_PER_BIN = "asd_per_bin"
 
 
 class SpectrumKind(str, Enum):
@@ -34,6 +48,14 @@ class SpectrumKind(str, Enum):
     CR_NUCLEUS = "cr_nucleus"
     CR_ALLPARTICLE = "cr_allparticle"
     NEUTRINO = "neutrino"
+    MAGNETOMETRIC = "magnetometric"  # SQUID / magnetometer PSD (Gaussian noise)
+    GRAVITATIONAL = "gravitational"  # differential gravimeter PSD (Gaussian noise)
+
+
+# Channels whose likelihood is Gaussian (continuous PSD) rather than Poisson
+# (counts). Single source of truth for the dispatch in models.inference — never
+# re-list these inline, or canonicalization and likelihood selection will drift.
+GAUSSIAN_KINDS = frozenset({SpectrumKind.MAGNETOMETRIC, SpectrumKind.GRAVITATIONAL})
 
 
 @dataclass
@@ -62,12 +84,20 @@ class Spectrum:
         self.value = np.asarray(self.value, dtype=float)
         if self.log_energy_edges_eV.ndim != 1:
             raise ValueError("log_energy_edges_eV must be 1-D")
+        if self.log_energy_edges_eV.shape[0] < 2:
+            raise ValueError("need at least 2 log_energy_edges_eV (one bin)")
         if self.value.shape[0] != self.log_energy_edges_eV.shape[0] - 1:
             raise ValueError(
                 f"value has {self.value.shape[0]} bins but "
                 f"{self.log_energy_edges_eV.shape[0]} edges were given "
                 "(expected len(edges) = len(value) + 1)."
             )
+        if not np.all(np.isfinite(self.log_energy_edges_eV)):
+            raise ValueError("log_energy_edges_eV must be finite (no NaN/inf)")
+        if not np.all(np.diff(self.log_energy_edges_eV) > 0):
+            raise ValueError("log_energy_edges_eV must be strictly increasing")
+        if not np.all(np.isfinite(self.value)):
+            raise ValueError("value must be finite (no NaN/inf)")
         if self.uncertainty is not None:
             self.uncertainty = np.asarray(self.uncertainty, dtype=float)
             if self.uncertainty.shape != self.value.shape:
@@ -95,6 +125,11 @@ class Spectrum:
 
     def as_dnde(self) -> NDArray[np.float64]:
         """Return differential number flux dN/dE in 1/(s cm^2 eV) (per sr if applicable)."""
+        if self.value_kind in (ValueKind.PSD_PER_BIN, ValueKind.ASD_PER_BIN):
+            raise ValueError(
+                "PSD/ASD spectra are continuous Gaussian channels and carry no "
+                "dN/dE; use canonical_value() for the per-bin PSD instead."
+            )
         E = self.energy_centers_eV
         v = self.value
         if self.value_kind is ValueKind.DNDE:
@@ -128,12 +163,17 @@ class Spectrum:
         differential flux, pass `exposure_cm2_s` (per bin) and the conversion is
         `mu_i = dN/dE_i * dE_i * A_i * T_i`.
         """
+        if self.value_kind in (ValueKind.PSD_PER_BIN, ValueKind.ASD_PER_BIN):
+            raise ValueError(
+                "PSD/ASD spectra are Gaussian channels with no Poisson counts; "
+                "use canonical_value() instead of expected_counts()."
+            )
         if self.value_kind is ValueKind.COUNTS_PER_BIN:
             return self.value.copy()
         if self.value_kind is ValueKind.PHOTON_RATE_PER_BIN:
             if exposure_cm2_s is None:
                 return self.value.copy()
-            return self.value * np.asarray(exposure_cm2_s, dtype=float)
+            return self.value * self._exposure_array(exposure_cm2_s)
 
         dnde = self.as_dnde()
         widths = self.bin_widths_eV
@@ -144,7 +184,33 @@ class Spectrum:
                 # convention used by Model.predict().
                 return dnde * widths
             exposure_cm2_s = self.exposure_cm2_s
-        return dnde * widths * np.asarray(exposure_cm2_s, dtype=float)
+        return dnde * widths * self._exposure_array(exposure_cm2_s)
+
+    def _exposure_array(self, exposure_cm2_s: NDArray[np.float64]) -> NDArray[np.float64]:
+        """Validate a per-bin exposure to the value shape (rejects silent broadcasts)."""
+        expo = np.asarray(exposure_cm2_s, dtype=float)
+        if expo.shape not in (self.value.shape, ()):
+            raise ValueError(
+                f"exposure_cm2_s shape {expo.shape} must match value shape {self.value.shape}"
+            )
+        return expo
+
+    def canonical_value(self) -> NDArray[np.float64]:
+        """Per-bin observed value for Gaussian (PSD) channels, in PSD units.
+
+        ASD inputs are squared to PSD (the additive, Gaussian-variance-bearing
+        quantity). This is the Gaussian-channel counterpart of `expected_counts`.
+        """
+        if self.value_kind is ValueKind.PSD_PER_BIN:
+            return self.value.copy()
+        if self.value_kind is ValueKind.ASD_PER_BIN:
+            if np.any(self.value < 0):
+                raise ValueError("ASD values must be non-negative (ASD = sqrt(PSD)).")
+            return self.value**2
+        raise ValueError(
+            f"canonical_value() is only defined for PSD/ASD value_kinds, "
+            f"got {self.value_kind!r}."
+        )
 
     @classmethod
     def from_dnde(
@@ -181,6 +247,30 @@ class Spectrum:
             value_kind=ValueKind.COUNTS_PER_BIN,
             kind=kind,
             exposure_cm2_s=np.asarray(exposure_cm2_s, dtype=float),
+            **kwargs,
+        )
+
+    @classmethod
+    def from_psd(
+        cls,
+        log_energy_edges_eV: NDArray[np.float64],
+        psd: NDArray[np.float64],
+        *,
+        kind: SpectrumKind = SpectrumKind.MAGNETOMETRIC,
+        uncertainty: Optional[NDArray[np.float64]] = None,
+        **kwargs: Any,
+    ) -> "Spectrum":
+        """Build a continuous Gaussian-channel spectrum from a per-bin PSD.
+
+        `uncertainty` is the per-bin Gaussian sigma of the PSD estimate; it is
+        required at fit time for the Gaussian likelihood.
+        """
+        return cls(
+            log_energy_edges_eV=log_energy_edges_eV,
+            value=np.asarray(psd, dtype=float),
+            value_kind=ValueKind.PSD_PER_BIN,
+            kind=kind,
+            uncertainty=uncertainty,
             **kwargs,
         )
 

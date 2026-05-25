@@ -324,6 +324,15 @@
 </a>
 </li>
 <li class="md-nav__item">
+<a class="md-nav__link" href="#beyond-the-single-epoch-plr">
+<span class="md-ellipsis">
+      
+        Beyond the single-epoch PLR
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
 <a class="md-nav__link" href="#watching-the-score-develop">
 <span class="md-ellipsis">
       
@@ -350,6 +359,30 @@
     
   
     Cosmic rays
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../magnetometric/">
+<span class="md-ellipsis">
+    
+  
+    Magnetometric (SQUID)
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../gravitational/">
+<span class="md-ellipsis">
+    
+  
+    Gravitational differential
   
 
     
@@ -517,6 +550,15 @@
 </a>
 </li>
 <li class="md-nav__item">
+<a class="md-nav__link" href="#beyond-the-single-epoch-plr">
+<span class="md-ellipsis">
+      
+        Beyond the single-epoch PLR
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
 <a class="md-nav__link" href="#watching-the-score-develop">
 <span class="md-ellipsis">
       
@@ -652,6 +694,19 @@ trials correction is being applied honestly.</p>
 </table>
 <p>These are <em>one-sided</em> thresholds (the boundary 0 case means we get a factor of
 two in the local p compared to a two-sided chi-square test).</p>
+<h2 id="beyond-the-single-epoch-plr">Beyond the single-epoch PLR<a class="headerlink" href="#beyond-the-single-epoch-plr" title="Permanent link">¶</a></h2>
+<p>Two related scorers reuse the same machinery:</p>
+<ul>
+<li><strong>Bayes factors</strong> (<code>anomalymetric.bayes_factor</code>): model comparison rather than a
+  frequentist tail probability. The default <code>method="bic"</code> penalizes each template
+  by its added complexity (<code>ln B ≈ Δln L − ½ Δk ln N</code>); <code>method="laplace"</code> adds an
+  Occam factor when you supply a finite <code>amplitude_prior_width</code>; <code>method="dynesty"</code>
+  computes the nested-sampling evidence ratio (needs the <code>[bayes]</code> extra).</li>
+<li><strong>Multi-epoch variability</strong> (<code>anomalymetric.score.variability.variability_score</code>):
+  scores each epoch of a <code>SpectrumSeries</code>, sums the per-template test statistics
+  across epochs (χ²ₙ under the null), and reports a flux-constancy statistic — for
+  flagging transients and recurring lines.</li>
+</ul>
 <h2 id="watching-the-score-develop">Watching the score develop<a class="headerlink" href="#watching-the-score-develop" title="Permanent link">¶</a></h2>
 <p>Injecting a 532 nm line of growing amplitude into a clean background produces
 exactly the behavior the math predicts — TS rises with the signal-to-noise:</p>
@@ -666,8 +721,9 @@ exactly the behavior the math predicts — TS rises with the signal-to-noise:</p
   <em>very</em> conservative when the library templates overlap in energy. A
   calibrated <code>⟨N⟩</code> from background simulations is the right fix for any
   publication-quality result.</li>
-<li>Upper-limit bins use a one-sided Rolke-style penalty; full Feldman–Cousins
-  censored-data handling is a known v2 follow-up.</li>
+<li>Upper-limit bins use the one-sided Poisson tail <code>log P(N ≤ k | μ)</code> (Gaussian
+  channels use a one-sided half-normal). Full Feldman–Cousins censored-data
+  handling is a known v2 follow-up.</li>
 </ul>
 </article>
 </div>

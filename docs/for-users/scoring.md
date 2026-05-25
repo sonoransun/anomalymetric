@@ -105,6 +105,20 @@ trials correction is being applied honestly.
 These are *one-sided* thresholds (the boundary 0 case means we get a factor of
 two in the local p compared to a two-sided chi-square test).
 
+## Beyond the single-epoch PLR
+
+Two related scorers reuse the same machinery:
+
+- **Bayes factors** (`anomalymetric.bayes_factor`): model comparison rather than a
+  frequentist tail probability. The default `method="bic"` penalizes each template
+  by its added complexity (`ln B ≈ Δln L − ½ Δk ln N`); `method="laplace"` adds an
+  Occam factor when you supply a finite `amplitude_prior_width`; `method="dynesty"`
+  computes the nested-sampling evidence ratio (needs the `[bayes]` extra).
+- **Multi-epoch variability** (`anomalymetric.score.variability.variability_score`):
+  scores each epoch of a `SpectrumSeries`, sums the per-template test statistics
+  across epochs (χ²ₙ under the null), and reports a flux-constancy statistic — for
+  flagging transients and recurring lines.
+
 ## Watching the score develop
 
 Injecting a 532 nm line of growing amplitude into a clean background produces
@@ -122,5 +136,6 @@ exactly the behavior the math predicts — TS rises with the signal-to-noise:
   *very* conservative when the library templates overlap in energy. A
   calibrated `⟨N⟩` from background simulations is the right fix for any
   publication-quality result.
-- Upper-limit bins use a one-sided Rolke-style penalty; full Feldman–Cousins
-  censored-data handling is a known v2 follow-up.
+- Upper-limit bins use the one-sided Poisson tail `log P(N ≤ k | μ)` (Gaussian
+  channels use a one-sided half-normal). Full Feldman–Cousins censored-data
+  handling is a known v2 follow-up.

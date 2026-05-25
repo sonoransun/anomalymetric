@@ -640,6 +640,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#field-sensor-channels-psd-gaussian" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Field-sensor channels (PSD, Gaussian)
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -692,6 +703,62 @@
     
   
     Cosmic rays
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../magnetometric/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Magnetometric (SQUID)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gravitational/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gravitational differential
   
 
     
@@ -1050,6 +1117,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#field-sensor-channels-psd-gaussian" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Field-sensor channels (PSD, Gaussian)
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1160,6 +1238,22 @@ ratio. Pinning the energy to laboratory laser wavelengths or to known axion
 masses gives the test physical meaning and a well-defined trials factor (the
 size of the library, plus an explicit penalty for any continuous scan).</p>
 <p>For more on the statistics see <a href="../scoring/">Scoring</a>.</p>
+<h2 id="field-sensor-channels-psd-gaussian">Field-sensor channels (PSD, Gaussian)<a class="headerlink" href="#field-sensor-channels-psd-gaussian" title="Permanent link">&para;</a></h2>
+<p>Photons and cosmic rays are <em>counts</em> and use a Poisson likelihood. The
+<a href="../magnetometric/">magnetometric</a> (SQUID) and
+<a href="../gravitational/">gravitational</a> channels are different: the observable is a
+continuous <strong>power spectral density</strong> S(f) with <strong>Gaussian</strong> noise. The
+likelihood dispatches on <code>SpectrumKind</code> — <code>MAGNETOMETRIC</code> and <code>GRAVITATIONAL</code>
+use <code>gaussian_log_likelihood</code> (a chi-square against the per-bin σ carried in
+<code>Spectrum.uncertainty</code>), everything else stays Poisson.</p>
+<p>These channels still live on the one shared axis: a frequency maps to an energy
+via <code>E = hν</code>, so the bin energy literally <em>is</em> the photon-equivalent energy of
+that frequency. The same <code>log10(E/eV)</code> coordinate therefore unifies a SQUID
+haloscope, a gravimeter, and a photon detector — and an axion of mass <code>m_a</code>
+appears at <code>E = m_a</code> on all of them. For these channels a <code>Model.dnde</code> returns a
+predicted PSD (PSDs of independent processes add, so the additive <code>Mixture</code> is
+still correct), the natural mixture is the instrument noise floor, and an exotic
+template is a narrow line or broadband bump above it.</p>
 
 
 

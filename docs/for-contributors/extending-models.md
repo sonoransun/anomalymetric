@@ -84,6 +84,40 @@ back to the original component until `_sync_components()` runs (which is
 called inside `dnde` and `component_dnde`). So if you write code that mutates
 both, prefer to mutate via the mixture.
 
+## PSD / sensor-channel models (Gaussian)
+
+For the magnetometric and gravitational channels the *same* `Model` protocol
+applies, but `dnde(log_E)` is reinterpreted to return a **predicted power
+spectral density** `S(f)` at `f = 10**log_E / h` (use
+`anomalymetric.units.frequencies_hz`), not a `dN/dE`. PSDs of independent
+processes add linearly, so `Mixture` is still correct: a noise-floor model plus
+a signal template sum in power. The likelihood is selected by the spectrum's
+`SpectrumKind` (`MAGNETOMETRIC` / `GRAVITATIONAL` → Gaussian; everything else →
+Poisson), and the Gaussian channel reads its per-bin σ from
+`Spectrum.uncertainty`, so a PSD model needs no extra plumbing:
+
+```python
+from anomalymetric.models.base import Parameter, Parameters
+from anomalymetric.units import frequencies_hz
+
+class MySensorNoise:
+    def __init__(self, amplitude=1.0, S_white=1e-12, f_knee_hz=1.0):
+        self.name = "my_sensor_noise"
+        self._S_white, self._f_knee = S_white, f_knee_hz
+        self.parameters = Parameters([Parameter("amplitude", amplitude, min=0.0)])
+
+    def dnde(self, log_E):  # returns S(f), a PSD
+        f = frequencies_hz(log_E)
+        A = self.parameters["amplitude"].value
+        return A * self._S_white * (1.0 + self._f_knee / f)
+```
+
+Narrow signal lines reuse `models.exotic.psd_line_template(name, E_center_eV,
+width_dex)` (peak-height-parameterized — its amplitude is the line height, which
+keeps the optimizer well-conditioned regardless of the channel's absolute scale).
+See `magnetometric/models.py` and `gravitational/models.py` for the shipped noise
+floors.
+
 ## When you need real physics
 
 For physically-motivated non-thermal models — synchrotron, inverse Compton,
@@ -116,5 +150,8 @@ result = Fit(my_model, spectrum).run()
 print(result.parameter_values)
 ```
 
-The default optimizer is Nelder-Mead with an L-BFGS-B refinement — robust
-against scale mismatches between, say, `T_K` (~300) and `amplitude` (~1).
+The default optimizer is Nelder-Mead (with an L-BFGS-B refinement only if it
+fails to converge), searching in `x / Parameter.scale` space. For parameters
+spanning many decades, set `Parameter.scale` to the parameter's natural
+magnitude so the search is well-conditioned (the default `scale=1.0` leaves
+behavior unchanged).

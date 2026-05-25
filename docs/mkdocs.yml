@@ -71,6 +71,8 @@ nav:
       - Physics: for-users/physics.md
       - Scoring: for-users/scoring.md
       - Cosmic rays: for-users/cosmic-rays.md
+      - Magnetometric (SQUID): for-users/magnetometric.md
+      - Gravitational differential: for-users/gravitational.md
       - CLI reference: for-users/cli.md
   - For contributors:
       - Architecture: for-contributors/architecture.md

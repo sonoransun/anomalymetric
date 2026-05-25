@@ -579,6 +579,62 @@
   
   
     <li class="md-nav__item">
+      <a href="../../for-users/magnetometric/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Magnetometric (SQUID)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../for-users/gravitational/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gravitational differential
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../for-users/cli/" class="md-nav__link">
         
   
@@ -831,6 +887,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#psd-sensor-channel-models-gaussian" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PSD / sensor-channel models (Gaussian)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#when-you-need-real-physics" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -995,6 +1062,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#psd-sensor-channel-models-gaussian" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PSD / sensor-channel models (Gaussian)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#when-you-need-real-physics" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1106,6 +1184,35 @@ Gaussian on a log-energy axis:</p>
 back to the original component until <code>_sync_components()</code> runs (which is
 called inside <code>dnde</code> and <code>component_dnde</code>). So if you write code that mutates
 both, prefer to mutate via the mixture.</p>
+<h2 id="psd-sensor-channel-models-gaussian">PSD / sensor-channel models (Gaussian)<a class="headerlink" href="#psd-sensor-channel-models-gaussian" title="Permanent link">&para;</a></h2>
+<p>For the magnetometric and gravitational channels the <em>same</em> <code>Model</code> protocol
+applies, but <code>dnde(log_E)</code> is reinterpreted to return a <strong>predicted power
+spectral density</strong> <code>S(f)</code> at <code>f = 10**log_E / h</code> (use
+<code>anomalymetric.units.frequencies_hz</code>), not a <code>dN/dE</code>. PSDs of independent
+processes add linearly, so <code>Mixture</code> is still correct: a noise-floor model plus
+a signal template sum in power. The likelihood is selected by the spectrum's
+<code>SpectrumKind</code> (<code>MAGNETOMETRIC</code> / <code>GRAVITATIONAL</code> → Gaussian; everything else →
+Poisson), and the Gaussian channel reads its per-bin σ from
+<code>Spectrum.uncertainty</code>, so a PSD model needs no extra plumbing:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">anomalymetric.models.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">Parameter</span><span class="p">,</span> <span class="n">Parameters</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">anomalymetric.units</span><span class="w"> </span><span class="kn">import</span> <span class="n">frequencies_hz</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">MySensorNoise</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">amplitude</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">S_white</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">,</span> <span class="n">f_knee_hz</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;my_sensor_noise&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_S_white</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_f_knee</span> <span class="o">=</span> <span class="n">S_white</span><span class="p">,</span> <span class="n">f_knee_hz</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">Parameters</span><span class="p">([</span><span class="n">Parameter</span><span class="p">(</span><span class="s2">&quot;amplitude&quot;</span><span class="p">,</span> <span class="n">amplitude</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)])</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">dnde</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">log_E</span><span class="p">):</span>  <span class="c1"># returns S(f), a PSD</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="n">frequencies_hz</span><span class="p">(</span><span class="n">log_E</span><span class="p">)</span>
+        <span class="n">A</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;amplitude&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span>
+        <span class="k">return</span> <span class="n">A</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_S_white</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_f_knee</span> <span class="o">/</span> <span class="n">f</span><span class="p">)</span>
+</code></pre></div>
+<p>Narrow signal lines reuse <code>models.exotic.psd_line_template(name, E_center_eV,
+width_dex)</code> (peak-height-parameterized — its amplitude is the line height, which
+keeps the optimizer well-conditioned regardless of the channel's absolute scale).
+See <code>magnetometric/models.py</code> and <code>gravitational/models.py</code> for the shipped noise
+floors.</p>
 <h2 id="when-you-need-real-physics">When you need real physics<a class="headerlink" href="#when-you-need-real-physics" title="Permanent link">&para;</a></h2>
 <p>For physically-motivated non-thermal models — synchrotron, inverse Compton,
 π⁰ decay — install the <code>[naima]</code> extra and wrap a <code>naima</code> model:</p>
@@ -1129,8 +1236,11 @@ both, prefer to mutate via the mixture.</p>
 <span class="n">result</span> <span class="o">=</span> <span class="n">Fit</span><span class="p">(</span><span class="n">my_model</span><span class="p">,</span> <span class="n">spectrum</span><span class="p">)</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">parameter_values</span><span class="p">)</span>
 </code></pre></div>
-<p>The default optimizer is Nelder-Mead with an L-BFGS-B refinement — robust
-against scale mismatches between, say, <code>T_K</code> (~300) and <code>amplitude</code> (~1).</p>
+<p>The default optimizer is Nelder-Mead (with an L-BFGS-B refinement only if it
+fails to converge), searching in <code>x / Parameter.scale</code> space. For parameters
+spanning many decades, set <code>Parameter.scale</code> to the parameter's natural
+magnitude so the search is well-conditioned (the default <code>scale=1.0</code> leaves
+behavior unchanged).</p>
 
 
 

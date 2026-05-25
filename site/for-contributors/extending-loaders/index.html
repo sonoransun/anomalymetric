@@ -579,6 +579,62 @@
   
   
     <li class="md-nav__item">
+      <a href="../../for-users/magnetometric/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Magnetometric (SQUID)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../for-users/gravitational/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gravitational differential
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../for-users/cli/" class="md-nav__link">
         
   
@@ -1099,22 +1155,22 @@ modification to <code>anomalymetric</code> itself is required.</p>
 <tr>
 <td><code>value_kind</code></td>
 <td>yes</td>
-<td>One of <code>dNdE</code>, <code>EdNdE</code>, <code>E2dNdE</code>, <code>nuFnu</code>, <code>photon_rate_per_bin</code>, <code>counts_per_bin</code></td>
+<td>One of <code>dNdE</code>, <code>EdNdE</code>, <code>E2dNdE</code>, <code>nuFnu</code>, <code>photon_rate_per_bin</code>, <code>counts_per_bin</code>, <code>psd_per_bin</code>, <code>asd_per_bin</code></td>
 </tr>
 <tr>
 <td><code>kind</code></td>
 <td>no</td>
-<td>Defaults to <code>photon</code> if absent</td>
+<td>Defaults to <code>photon</code>; sensor channels use <code>magnetometric</code> / <code>gravitational</code></td>
 </tr>
 <tr>
 <td><code>uncertainty</code></td>
 <td>no</td>
-<td>Same shape as <code>value</code></td>
+<td>Same shape as <code>value</code>. <strong>Required</strong> for the Gaussian (PSD/ASD) channels — it is the per-bin σ of the PSD estimate</td>
 </tr>
 <tr>
 <td><code>upper_limit_mask</code></td>
 <td>no</td>
-<td>Boolean column</td>
+<td>Boolean column; flagged bins use the one-sided (Poisson tail / half-normal) penalty</td>
 </tr>
 <tr>
 <td><code>exposure_cm2_s</code></td>

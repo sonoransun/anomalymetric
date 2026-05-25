@@ -23,9 +23,12 @@ archives = ["astroquery>=0.4.6"]
 bayes = ["emcee>=3.1", "dynesty>=2.1"]
 cr = ["crpropa>=3.2"]
 naima = ["naima>=0.10"]
+squid = []  # placeholder for a real SQUID / cavity acquisition backend
+grav = []  # placeholder for a real gravimeter / strain backend
 dev = [
     "pytest>=7.4",
     "pytest-cov>=4.1",
+    "pytest-xdist>=3.5",
     "jupyter>=1.0",
     "nbclient>=0.9",
     "nbformat>=5.9",
@@ -49,6 +52,8 @@ csv = "anomalymetric.ingest.tabular:CSVLoader"
 fits = "anomalymetric.ingest.tabular:FITSLoader"
 parquet = "anomalymetric.ingest.tabular:ParquetLoader"
 synthetic = "anomalymetric.ingest.synthetic:SyntheticLoader"
+squid = "anomalymetric.ingest.synthetic_psd:SQUIDSyntheticLoader"
+gravimeter = "anomalymetric.ingest.synthetic_psd:GravSyntheticLoader"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -59,3 +64,7 @@ anomalymetric = ["data/references/*.csv", "data/references/*.dat"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"
+markers = [
+    "slow: end-to-end fits/scores that take seconds (deselect with -m 'not slow')",
+    "remote_data: needs live network / an external archive (run with --run-remote)",
+]
